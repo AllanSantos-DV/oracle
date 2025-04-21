@@ -6,7 +6,6 @@ from PyInstaller.utils.hooks import collect_data_files
 
 block_cipher = None
 
-# Caminho para o Oracle Instant Client
 instant_client_path = os.path.abspath('./instantclient/instantclient_23_7')
 
 a = Analysis(
@@ -29,7 +28,6 @@ a = Analysis(
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
-# Criamos um único executável que contém tudo, exceto o Instant Client
 exe = EXE(
     pyz,
     a.scripts,
@@ -44,7 +42,7 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=True,  # Mantém True para debugar
+    console=False,
     disable_windowed_traceback=False,
     target_arch=None,
     codesign_identity=None,
