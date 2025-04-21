@@ -8,19 +8,11 @@ block_cipher = None
 
 # Caminho para o Oracle Instant Client
 instant_client_path = os.path.abspath('./instantclient/instantclient_23_7')
-instant_client_files = []
-
-# Coleta todos os arquivos do Instant Client
-for root, dirs, files in os.walk(instant_client_path):
-    for file in files:
-        full_path = os.path.join(root, file)
-        rel_path = os.path.relpath(full_path, instant_client_path)
-        instant_client_files.append((full_path, 'instantclient'))
 
 a = Analysis(
     ['src/main.py'],
     pathex=[],
-    binaries=instant_client_files,
+    binaries=[],  # Não incluímos o Instant Client aqui
     datas=[
         ('config.json', '.'),
     ],
@@ -37,6 +29,7 @@ a = Analysis(
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
+# Criamos um único executável que contém tudo, exceto o Instant Client
 exe = EXE(
     pyz,
     a.scripts,
@@ -51,7 +44,7 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=False,
+    console=True,  # Mantém True para debugar
     disable_windowed_traceback=False,
     target_arch=None,
     codesign_identity=None,
