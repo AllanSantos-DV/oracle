@@ -15,15 +15,15 @@ class FileList:
 
         # Frame interno para a Treeview
         tree_frame = ttk.Frame(self.files_frame)
-        tree_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 5))
+        tree_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 3))
 
         # Treeview
         columns = ("#", "Nome do Arquivo")
         self.arquivos_tree = ttk.Treeview(tree_frame, columns=columns, show="headings", selectmode='extended')
         self.arquivos_tree.heading("#", text="#")
         self.arquivos_tree.heading("Nome do Arquivo", text="Nome do Arquivo")
-        self.arquivos_tree.column("#", width=40, anchor="center", stretch=tk.NO)
-        self.arquivos_tree.column("Nome do Arquivo", width=400)
+        self.arquivos_tree.column("#", width=30, anchor="center", stretch=tk.NO)
+        self.arquivos_tree.column("Nome do Arquivo", width=250)
         self.arquivos_tree.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
 
         # Adiciona evento de seleção
@@ -38,31 +38,42 @@ class FileList:
         tree_frame.rowconfigure(0, weight=1)
         tree_frame.columnconfigure(0, weight=1)
 
-        # Botões
+        # Botões - Organizado em duas linhas para economizar espaço horizontal
         self._setup_buttons()
         
         # Contador
-        self.contador_label = ttk.Label(self.files_frame, text="Total: 0 script(s)", font=("Segoe UI", 9, "italic"))
-        self.contador_label.pack(anchor=tk.W, pady=(5,0))
+        self.contador_label = ttk.Label(self.files_frame, text="Total: 0 script(s)", font=("Segoe UI", 8, "italic"))
+        self.contador_label.pack(anchor=tk.W, pady=(3,0))
 
     def _setup_buttons(self):
-        """Configura os botões de gerenciamento."""
-        manage_buttons_frame = ttk.Frame(self.files_frame)
-        manage_buttons_frame.pack(fill=tk.X, pady=5)
+        """Configura os botões de gerenciamento em duas linhas."""
+        # Frame principal para os botões
+        buttons_main_frame = ttk.Frame(self.files_frame)
+        buttons_main_frame.pack(fill=tk.X, pady=3)
+        
+        # Primeira linha de botões
+        manage_buttons_frame1 = ttk.Frame(buttons_main_frame)
+        manage_buttons_frame1.pack(fill=tk.X, pady=(0, 2))
+        
+        # Segunda linha de botões
+        manage_buttons_frame2 = ttk.Frame(buttons_main_frame)
+        manage_buttons_frame2.pack(fill=tk.X, pady=(0, 2))
 
-        add_btn = ttk.Button(manage_buttons_frame, text="Adicionar", command=self.adicionar_scripts)
-        add_btn.pack(side=tk.LEFT, padx=3)
+        # Botões da primeira linha (Adicionar/Remover)
+        add_btn = ttk.Button(manage_buttons_frame1, text="Adicionar", command=self.adicionar_scripts)
+        add_btn.pack(side=tk.LEFT, padx=2, fill=tk.X, expand=True)
         
-        remove_btn = ttk.Button(manage_buttons_frame, text="Remover", command=self.remover_scripts)
-        remove_btn.pack(side=tk.LEFT, padx=3)
+        remove_btn = ttk.Button(manage_buttons_frame1, text="Remover", command=self.remover_scripts)
+        remove_btn.pack(side=tk.LEFT, padx=2, fill=tk.X, expand=True)
         
-        self.move_up_btn = ttk.Button(manage_buttons_frame, text="Mover Acima", 
+        # Botões da segunda linha (Mover Acima/Abaixo)
+        self.move_up_btn = ttk.Button(manage_buttons_frame2, text="Mover Acima", 
                                     command=lambda: self.mover_script("cima"), state=tk.DISABLED)
-        self.move_up_btn.pack(side=tk.LEFT, padx=3)
+        self.move_up_btn.pack(side=tk.LEFT, padx=2, fill=tk.X, expand=True)
         
-        self.move_down_btn = ttk.Button(manage_buttons_frame, text="Mover Abaixo", 
+        self.move_down_btn = ttk.Button(manage_buttons_frame2, text="Mover Abaixo", 
                                       command=lambda: self.mover_script("baixo"), state=tk.DISABLED)
-        self.move_down_btn.pack(side=tk.LEFT, padx=3)
+        self.move_down_btn.pack(side=tk.LEFT, padx=2, fill=tk.X, expand=True)
 
     def adicionar_scripts(self):
         """Adiciona scripts à lista."""

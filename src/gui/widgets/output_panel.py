@@ -12,14 +12,14 @@ class OutputPanel:
         self.output_frame = ttk.LabelFrame(self.parent, text="Saída da Execução")
         self.output_frame.pack(fill=tk.BOTH, expand=True)
 
-        # Configura a fonte para a área de texto
-        output_font = Font(family="Consolas", size=10)
+        # Configura a fonte para a área de texto - reduzida
+        output_font = Font(family="Consolas", size=9)
         
         # Área de texto rolável
         self.output_text = scrolledtext.ScrolledText(
             self.output_frame, 
-            width=60, 
-            height=20, 
+            width=50,  # Redução do tamanho
+            height=18,  # Redução do tamanho
             font=output_font, 
             wrap=tk.WORD
         )
