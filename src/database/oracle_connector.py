@@ -44,7 +44,17 @@ class OracleConnector:
                 self.connection.commit()
             except Exception as e:
                 overall_success = False
-                error_message = f"Erro no bloco {i}: {str(e)}\n"
+                
+                # Preparando o bloco para exibição (limitado a 500 caracteres para não sobrecarregar a UI)
+                block_preview = block
+                if len(block_preview) > 500:
+                    block_preview = block_preview[:497] + "..."
+                
+                # Formata a mensagem de erro incluindo o bloco que falhou
+                error_message = f"Erro no bloco {i}:\n{str(e)}\n\n"
+                error_message += f"Bloco com erro:\n{block_preview}\n"
+                error_message += "-" * 50 + "\n"
+                
                 error_messages.append(error_message)
         
         if overall_success:

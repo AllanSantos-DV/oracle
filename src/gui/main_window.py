@@ -1,11 +1,16 @@
 import os
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox
+from tkinter import ttk, filedialog, messagebox, scrolledtext
 from src.gui.widgets.file_list import FileList
 from src.gui.widgets.output_panel import OutputPanel
 from src.config.config_manager import ConfigManager
 from src.database.oracle_connector import OracleConnector
 from src.utils.validators import Validators
+
+# Constantes para as respostas do diálogo de erro
+IGNORAR = 1
+IGNORAR_TODOS = 2
+PARAR = 3
 
 class MainWindow:
     def __init__(self):
@@ -204,6 +209,90 @@ class MainWindow:
         # Executa scripts
         self._run_scripts(scripts, config_data)
 
+    def _show_error_dialog(self, file_name, error_message):
+        """Mostra um diálogo de erro com opções para continuar ou parar a execução."""
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Erro na Execução do Script")
+        dialog.geometry("600x350")
+        dialog.transient(self.root)
+        dialog.grab_set()  # Torna o diálogo modal
+        
+        # Adiciona um ícone de erro
+        error_frame = ttk.Frame(dialog, padding=(20, 20, 20, 10))
+        error_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Mensagem de erro
+        ttk.Label(
+            error_frame, 
+            text=f"Erro ao executar o script '{file_name}':", 
+            font=("Segoe UI", 11, "bold")
+        ).pack(anchor=tk.W, pady=(0, 10))
+        
+        # Área de texto para mostrar o erro
+        error_text = scrolledtext.ScrolledText(
+            error_frame, 
+            width=70, 
+            height=12, 
+            wrap=tk.WORD,
+            font=("Consolas", 10)
+        )
+        error_text.pack(fill=tk.BOTH, expand=True, pady=(0, 15))
+        error_text.insert(tk.END, error_message)
+        error_text.configure(state=tk.DISABLED)
+        
+        # Mensagem de pergunta
+        ttk.Label(
+            error_frame, 
+            text="O que você deseja fazer?", 
+            font=("Segoe UI", 10)
+        ).pack(anchor=tk.W, pady=(0, 10))
+        
+        # Variável para armazenar a escolha do usuário
+        result = tk.IntVar(value=PARAR)
+        
+        # Frame para os botões
+        buttons_frame = ttk.Frame(error_frame)
+        buttons_frame.pack(fill=tk.X, pady=10)
+        
+        # Botões de ação
+        ignore_btn = ttk.Button(
+            buttons_frame, 
+            text="Ignorar e Continuar", 
+            command=lambda: self._close_dialog(dialog, IGNORAR, result)
+        )
+        ignore_btn.pack(side=tk.LEFT, padx=(0, 10))
+        
+        ignore_all_btn = ttk.Button(
+            buttons_frame, 
+            text="Ignorar Todos", 
+            command=lambda: self._close_dialog(dialog, IGNORAR_TODOS, result)
+        )
+        ignore_all_btn.pack(side=tk.LEFT, padx=(0, 10))
+        
+        stop_btn = ttk.Button(
+            buttons_frame, 
+            text="Parar Execução", 
+            command=lambda: self._close_dialog(dialog, PARAR, result)
+        )
+        stop_btn.pack(side=tk.LEFT)
+        
+        # Centraliza o diálogo em relação à janela principal
+        dialog.update_idletasks()
+        width = dialog.winfo_width()
+        height = dialog.winfo_height()
+        x = self.root.winfo_x() + (self.root.winfo_width() - width) // 2
+        y = self.root.winfo_y() + (self.root.winfo_height() - height) // 2
+        dialog.geometry(f"{width}x{height}+{x}+{y}")
+        
+        # Espera até que o diálogo seja fechado
+        self.root.wait_window(dialog)
+        return result.get()
+    
+    def _close_dialog(self, dialog, choice, result_var):
+        """Fecha o diálogo e define o resultado."""
+        result_var.set(choice)
+        dialog.destroy()
+
     def _run_scripts(self, scripts, config):
         """Executa a lista de scripts SQL."""
         success, error = self.oracle_connector.connect(
@@ -220,6 +309,13 @@ class MainWindow:
 
         self.output_panel.clear()
         self.output_panel.append_text(f"Iniciando execução de {len(scripts)} script(s)...\n\n")
+        
+        # Flag para controlar se deve mostrar diálogos de erro
+        ignore_all_errors = False
+        
+        # Contador de scripts executados com sucesso
+        success_count = 0
+        error_count = 0
 
         for file_path in scripts:
             file_name = os.path.basename(file_path)
@@ -227,15 +323,61 @@ class MainWindow:
                 with open(file_path, encoding='utf-8') as f:
                     sql = f.read()
                 success, error = self.oracle_connector.execute_script(sql)
+                
                 if success:
                     self.output_panel.append_success(f"[OK] {file_name}\n")
+                    success_count += 1
                 else:
-                    self.output_panel.append_error(f"[ERRO] {file_name}: {error}\n")
+                    error_count += 1
+                    # Exibe o erro no painel de saída
+                    self.output_panel.append_sql_error(file_name, error)
+                    
+                    # Se não estiver ignorando todos os erros, mostra o diálogo
+                    if not ignore_all_errors:
+                        # Mostra o diálogo e obtém a escolha do usuário
+                        choice = self._show_error_dialog(file_name, error)
+                        
+                        if choice == IGNORAR:
+                            # Continua com o próximo script
+                            continue
+                        elif choice == IGNORAR_TODOS:
+                            # Continua sem mostrar mais diálogos
+                            ignore_all_errors = True
+                        elif choice == PARAR:
+                            # Para a execução
+                            break
             except Exception as e:
+                error_count += 1
                 self.output_panel.append_error(f"[ERRO] {file_name}: {e}\n")
+                
+                # Se não estiver ignorando todos os erros, mostra o diálogo
+                if not ignore_all_errors:
+                    # Mostra o diálogo e obtém a escolha do usuário
+                    choice = self._show_error_dialog(file_name, str(e))
+                    
+                    if choice == IGNORAR:
+                        # Continua com o próximo script
+                        continue
+                    elif choice == IGNORAR_TODOS:
+                        # Continua sem mostrar mais diálogos
+                        ignore_all_errors = True
+                    elif choice == PARAR:
+                        # Para a execução
+                        break
 
         self.oracle_connector.close()
-        messagebox.showinfo("Sucesso", "Execução concluída!")
+        
+        # Mensagem de resumo
+        self.output_panel.append_text(f"\n{'=' * 50}\n")
+        self.output_panel.append_text(f"Execução finalizada. Resumo:\n")
+        self.output_panel.append_success(f"✓ Scripts executados com sucesso: {success_count}\n")
+        if error_count > 0:
+            self.output_panel.append_error(f"✗ Scripts com erros: {error_count}\n")
+        
+        if error_count == 0:
+            messagebox.showinfo("Sucesso", "Todos os scripts foram executados com sucesso!")
+        else:
+            messagebox.showinfo("Concluído", f"Execução concluída com {error_count} erro(s).")
 
     def validar_conexao(self):
         """Valida a conexão com o banco de dados."""
